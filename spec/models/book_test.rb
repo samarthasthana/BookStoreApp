@@ -18,6 +18,33 @@ describe Book do
     expect(FactoryGirl.build(:book, author_id: nil)).to_not be_valid
   end
 
+  describe "#search" do
+    describe "when no query string is provided" do
+      it "returns a nil" do
+        expect(Book.search(nil)).to eq(nil)
+      end
+    end
+    describe "when a query string is provided" do
+      let(:query) { "life" }
+      describe "when title_only option is true" do
+        before(:all) do
+          FactoryGirl.create(:book, title: "My life and works")
+          FactoryGirl.create(:book, title: "Life of others")
+          FactoryGirl.create(:book, title: "To live the life.")
+          FactoryGirl.create(:book, title: "Lift the Li fe")
+        end
+
+        it "returns search results for title only" do
+          @results = Book.search(query,{title_only: true})
+          expect(@results.size).to eq(3)
+        end
+        after(:all) do
+          Book.delete_all
+        end
+      end
+    end
+  end
+
   describe "#author_name" do
     describe "when an invalid author id is used" do
       it "returns nil" do
@@ -87,8 +114,8 @@ describe Book do
       4.times { FactoryGirl.create(:book_review, :book_id =>12, :rating =>3)}
     end
     describe "when no review exist for a book" do
-      it "returns nil" do
-        expect(FactoryGirl.build(:book, :id => 15).average_rating).to eq(nil)
+      it "returns 0.0 as rating" do
+        expect(FactoryGirl.build(:book, :id => 15).average_rating).to eq(0.0)
       end
     end
 
