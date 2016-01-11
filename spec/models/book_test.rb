@@ -20,26 +20,96 @@ describe Book do
 
   describe "#search" do
     describe "when no query string is provided" do
-      it "returns a nil" do
-        expect(Book.search(nil)).to eq(nil)
+      it "returns an empty array" do
+        expect(Book.search(nil)).to eq([])
       end
     end
     describe "when a query string is provided" do
-      let(:query) { "life" }
       describe "when title_only option is true" do
         before(:all) do
           FactoryGirl.create(:book, title: "My life and works")
           FactoryGirl.create(:book, title: "Life of others")
           FactoryGirl.create(:book, title: "To live the life.")
           FactoryGirl.create(:book, title: "Lift the Li fe")
+          bookTop = Book.find_by(:title => "Life of others")
+          bookSecond = Book.find_by(:title => "My life and works")
+          FactoryGirl.create(:book_review, :book_id =>bookTop.id, :rating =>5)
+          FactoryGirl.create(:book_review, :book_id =>bookSecond.id, :rating =>3)
+          @results = Book.search("life",{title_only: true})
         end
 
         it "returns search results for title only" do
-          @results = Book.search(query,{title_only: true})
           expect(@results.size).to eq(3)
         end
+
+        it "returns search results sorted according to average rating" do
+          expect(@results.first.title).to eq("Life of others")
+          expect(@results.second.title).to eq("My life and works")
+        end
+
         after(:all) do
           Book.delete_all
+          BookReview.delete_all
+        end
+      end
+
+      describe "when title_only option is false" do
+        before(:all) do
+          author = FactoryGirl.create(:author, last_name: "Door")
+          publisher = FactoryGirl.create(:publisher, name: "Door")
+          FactoryGirl.create(:book, title: "The Author", author_id: author.id)
+          FactoryGirl.create(:book, title: "The Publisher", publisher_id: publisher.id)
+          @book_one = FactoryGirl.create(:book, title: "The Door")
+          @book_second = FactoryGirl.create(:book, title: "Random other book")
+        end
+        describe "and other options are nil " do
+          it "returns combined results" do
+            expect(Book.search("Door").size).to eq(3)
+          end
+        end
+
+        describe "when book_format_type_id is provided" do
+          it "gives results with only the provided book format" do
+            format_type1 = FactoryGirl.create(:book_format_type, name: "Kindle", physical: false)
+            format_type2 = FactoryGirl.create(:book_format_type, name: "PDF", physical: false)
+            FactoryGirl.create(:book_format, book_id: @book_one.id, book_format_type_id: format_type1.id)
+            FactoryGirl.create(:book_format, book_id: @book_second.id, book_format_type_id: format_type2.id)
+            result = Book.search("Door", {book_format_type_id: format_type1.id})
+            expect(result.size).to eq(1)
+            expect(result.first.title).to eq("The Door")
+          end
+        end
+
+        describe "when book_format_physical is true" do
+          it "gives results which have a physical format in the system" do
+            format_type1 = FactoryGirl.create(:book_format_type, name: "Paperback", physical: true)
+            format_type2 = FactoryGirl.create(:book_format_type, name: "PDF", physical: false)
+            FactoryGirl.create(:book_format, book_id: @book_one.id, book_format_type_id: format_type1.id)
+            FactoryGirl.create(:book_format, book_id: @book_second.id, book_format_type_id: format_type2.id)
+            result = Book.search("Door", {book_format_physical: true})
+            expect(result.size).to eq(1)
+            expect(result.first.title).to eq("The Door")
+            result = Book.search("Door", {book_format_physical: false})
+            expect(result.size).to eq(0)
+          end
+        end
+
+        describe "when book_format_physical is true and book_format_type_id is provided" do
+          it "gives results which have a physical format in the system" do
+            format_type = FactoryGirl.create(:book_format_type, name: "Paperback", physical: true)
+            FactoryGirl.create(:book_format, book_id: @book_one.id, book_format_type_id: format_type.id)
+            result = Book.search("Door", {book_format_type_id: format_type.id, book_format_physical: true})
+            expect(result.size).to eq(1)
+            expect(result.first.title).to eq("The Door")
+          end
+        end
+
+        after(:all) do
+          Book.delete_all
+          Author.delete_all
+          Publisher.delete_all
+          BookFormatType.delete_all
+          BookFormat.delete_all
         end
       end
     end

@@ -32,6 +32,7 @@ class Book < ActiveRecord::Base
   end
 
   def self.search(query, options = {title_only: false, book_format_type_id: nil, book_format_physical: nil })
+    @combined_results = []
     unless query.nil?
       @author_results = []
       @publisher_results = []
@@ -57,5 +58,6 @@ class Book < ActiveRecord::Base
         @combined_results.reject! {|b| BookFormat.where(:book_id => b.id, :book_format_type_id => @physical_formats).empty?}
       end
     end
+    @combined_results
   end
 end
