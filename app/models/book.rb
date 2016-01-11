@@ -7,28 +7,25 @@ class Book < ActiveRecord::Base
 
   def book_format_types
     # Find the book format the book is available in
-    availableTypes = BookFormat.where(:book_id => self.id).map do |format|
-      BookFormatType.find(format.book_format_type_id).name
-    end
-    availableTypes.uniq
+    (BookFormat.where(:book_id => self.id).map { |f| BookFormatType.find(f.book_format_type_id).name }).uniq
   end
 
   def author_name
-    @author = Author.find_by_id(self.author_id)
-    unless @author.nil?
-      return "#{@author.last_name},#{@author.first_name}"
+    author = Author.find_by_id(self.author_id)
+    unless author.nil?
+      return "#{author.last_name},#{author.first_name}"
     end
   end
 
   def average_rating
-    @sum = 0.0
-    @rating = 0.0
-    @reviews = BookReview.where(:book_id => self.id).to_a
-    unless @reviews.empty?
-      @reviews.each { |rev| @sum += rev.rating }
-      @rating = (@sum/ @reviews.size).round(1)
+    sum = 0.0
+    rating = 0.0
+    reviews = BookReview.where(:book_id => self.id).to_a
+    unless reviews.empty?
+      reviews.each { |rev| sum += rev.rating }
+      rating = (sum/ reviews.size).round(1)
     end
-    @rating
+    rating
   end
 
   def self.search(query, options = {title_only: false, book_format_type_id: nil, book_format_physical: nil })
