@@ -2,21 +2,24 @@ require 'rails_helper'
 require 'spec_helper'
 
 describe Book do
-  it "has a valid factory for book model" do
-    expect(FactoryGirl.create(:book)).to be_valid
+  describe "book model attirbutes" do
+    it "has a valid factory for book model" do
+      expect(FactoryGirl.create(:book)).to be_valid
+    end
+
+    it "is invalid without a title" do
+      expect(FactoryGirl.build(:book, title: nil)).to_not be_valid
+    end
+
+    it "is invalid without a publisher_id" do
+      expect(FactoryGirl.build(:book, publisher_id: nil)).to_not be_valid
+    end
+
+    it "is invalid without a author_id" do
+      expect(FactoryGirl.build(:book, author_id: nil)).to_not be_valid
+    end
   end
 
-  it "is invalid without a title" do
-    expect(FactoryGirl.build(:book, title: nil)).to_not be_valid
-  end
-
-  it "is invalid without a publisher_id" do
-    expect(FactoryGirl.build(:book, publisher_id: nil)).to_not be_valid
-  end
-
-  it "is invalid without a author_id" do
-    expect(FactoryGirl.build(:book, author_id: nil)).to_not be_valid
-  end
 
   describe "#search" do
     describe "when no query string is provided" do
@@ -25,17 +28,17 @@ describe Book do
       end
     end
     describe "when a query string is provided" do
-      describe "when title_only option is true" do
+      describe "and title_only option is true" do
         before(:all) do
           FactoryGirl.create(:book, title: "My life and works")
           FactoryGirl.create(:book, title: "Life of others")
           FactoryGirl.create(:book, title: "To live the life.")
-          FactoryGirl.create(:book, title: "Lift the Li fe")
-          bookTop = Book.find_by(:title => "Life of others")
+          FactoryGirl.create(:book, title: "Batman Vs Superman")
+          bookFirst = Book.find_by(:title => "Life of others")
           bookSecond = Book.find_by(:title => "My life and works")
-          FactoryGirl.create(:book_review, :book_id =>bookTop.id, :rating =>5)
-          FactoryGirl.create(:book_review, :book_id =>bookSecond.id, :rating =>3)
-          @results = Book.search("life",{title_only: true})
+          FactoryGirl.create(:book_review, :book_id => bookFirst.id, :rating => 5)
+          FactoryGirl.create(:book_review, :book_id => bookSecond.id, :rating => 3)
+          @results = Book.search("life",{ title_only: true })
         end
 
         it "returns search results for title only" do
@@ -53,7 +56,7 @@ describe Book do
         end
       end
 
-      describe "when title_only option is false" do
+      describe "and title_only option is false" do
         before(:all) do
           author = FactoryGirl.create(:author, last_name: "Door")
           publisher = FactoryGirl.create(:publisher, name: "Door")
@@ -118,16 +121,14 @@ describe Book do
   describe "#author_name" do
     describe "when an invalid author id is used" do
       it "returns nil" do
-        @book = FactoryGirl.build(:book, author_id: 0)
-        expect(@book.author_name).to eq(nil)
+        expect(FactoryGirl.build(:book, author_id: 0).author_name).to eq(nil)
       end
     end
 
     describe "when a valid author id is used" do
       it "returns the author name in correct format" do
-        @author = FactoryGirl.create(:author)
-        @book = FactoryGirl.create(:book, author_id: @author.id)
-        expect(@book.author_name).to eq("#{@author.last_name},#{@author.first_name}")
+        author = FactoryGirl.create(:author)
+        expect(FactoryGirl.create(:book, author_id: author.id).author_name).to eq("#{author.last_name},#{author.first_name}")
       end
     end
     after(:all) do
@@ -140,8 +141,7 @@ describe Book do
     describe "when book id is not valid" do
 
       it "returns an empty array" do
-        @book = FactoryGirl.build(:book, id: 0)
-        expect(@book.book_format_types).to eq([])
+        expect(FactoryGirl.build(:book, id: 0).book_format_types).to eq([])
       end
     end
 
@@ -149,26 +149,24 @@ describe Book do
       before(:all) do
         @book = FactoryGirl.create(:book)
       end
-      describe "When there are no formats defined" do
+      describe "and there are no formats defined" do
         it "returns an empty array" do
           expect(@book.book_format_types).to eq([])
         end
       end
 
-      describe "when there are valid formats defined" do
+      describe "and there are valid formats defined" do
         it "returns the formats in an array" do
-          @formats = []
-          @book_formats = []
-          @format_names = []
+          formats = []
+          book_formats = []
+          format_names = []
 
-          3.times { @formats << FactoryGirl.create(:book_format_type) }
-          @formats.each do |f|
-            @book_formats << FactoryGirl.build(:book_format, book_id: @book.id, book_format_type_id: f.id)
-            @format_names << f.name
-            f.save
-            (@book_formats.last).save
+          3.times { formats << FactoryGirl.create(:book_format_type) }
+          formats.each do |f|
+            book_formats << FactoryGirl.create(:book_format, book_id: @book.id, book_format_type_id: f.id)
+            format_names << f.name
           end
-          expect(@book.book_format_types).to eq(@format_names)
+          expect(@book.book_format_types).to eq(format_names)
         end
       end
       after(:all) do
@@ -181,7 +179,8 @@ describe Book do
 
   describe "#average_rating" do
     before(:all) do
-      4.times { FactoryGirl.create(:book_review, :book_id =>12, :rating =>3)}
+      2.times { FactoryGirl.create(:book_review, :book_id =>12, :rating =>3)}
+      1.times { FactoryGirl.create(:book_review, :book_id =>12, :rating =>5)}
     end
     describe "when no review exist for a book" do
       it "returns 0.0 as rating" do
@@ -191,7 +190,7 @@ describe Book do
 
     describe "when reviews exist for a book" do
       it "gives the correct average rating" do
-        expect(FactoryGirl.build(:book, :id => 12).average_rating).to eq(3.0)
+        expect(FactoryGirl.build(:book, :id => 12).average_rating).to eq(3.7)
       end
     end
     after(:all) do
