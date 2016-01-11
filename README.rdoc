@@ -12,8 +12,7 @@ General info:
 * How to run the test suite: rspec spec/*
 
 * Installation instructions:
-  
-  su bundle install
-  rake db:create:all
-  rake db:migrate
-  rails server 
+  - su bundle install
+  - rake db:create:all
+  - rake db:migrate
+  - rails server 
